@@ -6,7 +6,7 @@ format:
     embed-resources: true
 ---
 
-[Link to repo]
+[Link to repo](https://github.com/LarryC-24/Homework-2)
 
 ## Problem 1
 
@@ -256,5 +256,41 @@ youtube_t |>
   ggplot(aes(x = log_comment_count)) +
   geom_boxplot() +
   theme_minimal()
+```
+
+### Part c
+```{r}
+responses <- c("log_view_count", "log_like_count", "log_dislike_count", "log_comment_count")
+characteristics <- c("funny", "show_product_quickly", "patriotic", "celebrity", "danger", "animals", "use_sex")
+for (r in responses) {
+  for (c in characteristics) {
+    formula <- paste(r, "~ as.factor(", c, ") + year")
+    model <- lm(as.formula(formula), data = youtube_t)
+    print(summary(model)$coefficients)
+  }
+}
+```
+
+:::{.callout-tip icon="false"}
+## Answer
+No characteristics have a significant association with each outcome. For log_dislike_count, the significant associations with the variables funny, show_product_early, celebrity, danger, and animals are positive, positive, positive, negative, and positive, respectively. Danger is the characteristic with the largest positive estimated association with log_view_counts.
+:::
+
+### Part d
+```{r}
+# lm() result
+model <- lm(log_view_count ~ as.factor(danger) + year, data = youtube_t)
+summary(model)
+```
+```{r}
+# manual calculation
+youtube_tc <- youtube_t[complete.cases(youtube_t),]
+  
+X <- model.matrix(~ youtube_tc$danger + youtube_tc$year)
+y <- as.matrix(youtube_tc$log_view_count)
+
+beta_manual <- solve(t(X) %*% X) %*% t(X) %*% y
+
+print(beta_manual)
 ```
 
