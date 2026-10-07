@@ -1,0 +1,260 @@
+---
+title: "HW2"
+author: "Larry Cheng"
+format: 
+  html:
+    embed-resources: true
+---
+
+[Link to repo]
+
+## Problem 1
+
+### Part a
+```{r}
+# define function to take random step w/ equal probabilty
+rand_step <- function(coord) {
+  directions <- list(c(1,0), c(0,1), c(-1,0), c(0,-1))
+  step <- unlist(sample(directions, 1))
+  coord <- coord + step
+  # note new coordinate and previous direction
+  return(list(coord = coord, dir = step))
+}
+
+# define random walk function
+momentum_walk <- function(n, p) {
+  # clean input
+  if (is.double(n) == FALSE | is.double(p) == FALSE) {
+    return(print("Enter numeric values"))
+  }
+  else if (n < 1 | p < 0 | p > 1 | n %% 1 != 0) {
+    return(print("Enter positive integer n and 0<p<1"))
+  }
+  else {
+    # set initial coordinates
+    first_coord <- c(0,0)
+    # take first random step
+    coord_dir <- rand_step(first_coord)
+    # generate chance of taking same step next
+    momentum_p <- runif(1,0,1)
+    # take remaining n-1 steps
+    for (i in 1:(n-1)) {
+      # same direction
+      if (momentum_p < p) {
+        coord_dir[["coord"]] <- coord_dir[["coord"]] + coord_dir[["dir"]]
+        momentum_p <- runif(1,0,1)
+      }
+      # random direction
+      else {
+        coord_dir <- rand_step(coord_dir[["coord"]])
+        momentum_p <- runif(1,0,1)
+      }
+    }
+    return(coord_dir[["coord"]])
+  }
+}
+```
+
+
+### Part b
+```{r}
+# function defined in part a uses a loop for the simulation
+# writing function using apply family function
+momentum_walk2 <- function(n,p) {
+  # clean input
+  if (is.double(n) == FALSE | is.double(p) == FALSE) {
+    return(print("Enter numeric values"))
+  }
+  else if (n < 1 | p < 0 | p > 1 | n %% 1 != 0) {
+    return(print("Enter positive integer n and 0<p<1"))
+  }
+  else {
+    # set initial coordinates
+    first_coord <- c(0,0)
+    # take first random step direction
+    current_dir <- rand_step(first_coord)[["dir"]]
+    step_vectors <- sapply(1:n, function(i) {
+      if (i == 1) {
+        return(current_dir)
+      }
+      # take remaining n-1 step directions
+      else {
+        # random direction
+        if (runif(1,0,1) > p) {
+        current_dir <<- rand_step(first_coord)[["dir"]]
+        }
+        return(current_dir)
+      }
+    }
+    )
+    return(rowSums(step_vectors))
+  }
+}
+```
+
+:::{.callout-tip icon="false"}
+## Answer
+The function that uses a loop uses the rand_step() function to update the coordinate for each iteration of the loop, which outputs the currect coordinate and the previous direction. In the case where the same step is taken, the previous direction is used to update the position. 
+
+The function using sapply() randomly chooses between picking the same direction and a random direction for each step represented by the vector 1:n, using the randomly generated first step for the next "current direction". These directions are assigned to each step of the vector, and the rows are summed to find the final coordinate.
+:::
+
+### Part c
+```{r}
+set.seed(8)
+momentum_walk(n = 10, p = 0.6)
+momentum_walk(n = 1000, p = 0.6)
+
+# same results
+set.seed(8)
+momentum_walk(n = 10, p = 0.6)
+momentum_walk(n = 1000, p = 0.6)
+```
+:::{.callout-tip icon="false"}
+## Answer
+By setting the same seed for both sets of function calls, the psuedorandom number generation process R uses in the random functions will lead to the same result for both calls.
+:::
+
+### Part d
+```{r}
+p_values <- c(0, 0.5, 0.9)
+for (p in p_values) {
+  final_coord <- momentum_walk(1000, p)
+  distance <- sqrt(final_coord[1]^2 + final_coord[2]^2) 
+  print(distance)
+}
+```
+:::{.callout-tip icon="false"}
+## Answer
+Increasing the momentum appears to increase the final distance, possibly because it reduces the chance of taking a step canceling a previous one.
+:::
+
+### Part e
+```{r}
+p_values <- c(0, 0.25, 0.5, 0.75, 0.9)
+for (p in p_values) {
+  distances <- rep(NA, 1000)
+  for (i in 1:1000) {
+    final_coord <- momentum_walk(1000, p)
+    distances[i] <- sqrt(final_coord[1]^2 + final_coord[2]^2) 
+  }
+  print(mean(distances))
+}
+```
+
+```{r}
+p_values <- c(0, 0.25, 0.5, 0.75, 0.9)
+# define distance calculating function
+distance_walk <- function(n, p) {
+  final_coord <- momentum_walk(n, p)
+  final_distance <- sqrt(final_coord[1]^2 + final_coord[2]^2)
+  return(final_distance)
+}
+
+mean_distances <- c()
+
+for (p in p_values) {
+  mean_distance <- mean(sapply(1:1000, function(i) {distance_walk(1000, p)}))
+  mean_distances <- c(mean_distances, mean_distance)
+}
+print(cbind(p_values, mean_distances))
+```
+
+:::{.callout-tip icon="false"}
+## Answer
+Mean final distance appears to increase as p increases.
+:::
+
+### Part f
+```{r}
+library(microbenchmark)
+microbenchmark(momentum_walk(1000, 0.6), momentum_walk2(1000, 0.6))
+microbenchmark(momentum_walk(100000, 0.6), momentum_walk2(100000, 0.6))
+```
+
+:::{.callout-tip icon="false"}
+## Answer
+The implementation using the sapply function appears to be slower, and the gap in times gets larger for larger inputs. Neither of the implementations are truly vectorized, but the second implementation may use more memory, contributing to longer run times.
+:::
+
+## Problem 2
+```{r}
+n <- 10000
+mean(rpois(n, 4*3) + rnorm(n, 45, 16) + rpois(n, 15*6) + rnorm(n, 55, 25) + rpois(n, 9*6))
+```
+
+## Problem 3
+
+### Part a
+```{r}
+library(tidyverse)
+youtube <- read.csv(
+  "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-03-02/youtube.csv"
+)
+
+# de-identify
+youtube_di <- youtube |> 
+  select(year, funny:use_sex, view_count:comment_count)
+```
+
+### Part b
+```{r}
+youtube_di |> 
+  ggplot(aes(x = view_count)) +
+  geom_boxplot() +
+  theme_minimal()
+youtube_di |> 
+  ggplot(aes(x = like_count)) +
+  geom_boxplot() +
+  theme_minimal()
+youtube_di |> 
+  ggplot(aes(x = dislike_count)) +
+  geom_boxplot() +
+  theme_minimal()
+youtube_di |> 
+  ggplot(aes(x = favorite_count)) +
+  geom_boxplot() +
+  theme_minimal()
+youtube_di |> 
+  ggplot(aes(x = comment_count)) +
+  geom_boxplot() +
+  theme_minimal()
+```
+
+:::{.callout-tip icon="false"}
+## Answer
+From the distributions of the data, favorite_count won't be used since it consists of only 0 values. The other four variables may be able to be used after being transformed due to the distributions being heavily right-skewed.
+:::
+
+```{r}
+# log transforming data
+youtube_t <- youtube_di |> 
+  mutate(
+    log_view_count = log(view_count),
+    log_like_count = log(like_count),
+    log_dislike_count = log(dislike_count),
+    log_comment_count = log(comment_count)
+  )
+youtube_t[youtube_t == -Inf] <- 0
+```
+
+```{r}
+# check distributions
+youtube_t |> 
+  ggplot(aes(x = log_view_count)) +
+  geom_boxplot() +
+  theme_minimal()
+youtube_t |> 
+  ggplot(aes(x = log_like_count)) +
+  geom_boxplot() +
+  theme_minimal()
+youtube_t |> 
+  ggplot(aes(x = log_dislike_count)) +
+  geom_boxplot() +
+  theme_minimal()
+youtube_t |> 
+  ggplot(aes(x = log_comment_count)) +
+  geom_boxplot() +
+  theme_minimal()
+```
+
